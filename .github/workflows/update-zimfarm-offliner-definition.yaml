@@ -1,0 +1,62 @@
+name: Reusable workflow to Create/Update a ZimFarm Offliner Definition
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      offliner:
+        required: true
+        type: string
+      offliner_definition:
+        required: true
+        type: string
+    secrets:
+      zimfarm_ci_secret:
+        required: true
+jobs:
+  update-zimfarm:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        zimfarm_url:
+          - https://api.farm.openzim.org
+          - https://api.farm.zimit.kiwix.org
+      fail-fast: false # Let all jobs run even if one fails
+
+    steps:
+      - name: Update offliner ${{ inputs.offliner }} to version ${{ inputs.version }} on ${{ matrix.zimfarm_url }}
+        run: |
+          set -euo pipefail
+
+          version='${{ inputs.version }}'
+          offliner='${{ inputs.offliner }}'
+          ci_secret='${{ secrets.zimfarm_ci_secret }}'
+          zimfarm_url='${{ matrix.zimfarm_url }}'
+
+          # Construct the payload with proper shape
+          payload=$(jq -n \
+            --arg version "$version" \
+            --arg ci_secret "$ci_secret" \
+            --argjson spec "${{ inputs.offliner_definition }}" \
+            '{version: $version, ci_secret: $ci_secret, spec: $spec}')
+
+          echo "🚀 Updating $zimfarm_url for $offliner with version $version..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: $offliner-ci/$version" \
+            -d "$payload" \
+            "$zimfarm_url/v2/offliners/$offliner/versions")
+
+          http_code=$(echo "$response" | tail -n1)
+          response_body=$(echo "$response" | head -n -1)
+
+
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Successfully updated $zimfarm_url"
+          else
+            echo "❌ Failed to update $zimfarm_url (HTTP $http_code)"
+            echo "$response_body"
+            exit 1
+          fi
