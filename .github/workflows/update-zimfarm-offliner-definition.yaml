@@ -39,7 +39,7 @@ jobs:
           payload=$(jq -n \
             --arg version "$version" \
             --arg ci_secret "$ci_secret" \
-            --argjson spec "${{ inputs.offliner_definition }}" \
+            --argjson spec '${{ inputs.offliner_definition }}' \
             '{version: $version, ci_secret: $ci_secret, spec: $spec}')
 
           echo "🚀 Updating $zimfarm_url for $offliner with version $version..."
