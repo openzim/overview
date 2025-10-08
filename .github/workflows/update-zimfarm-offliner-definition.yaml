@@ -9,7 +9,7 @@ on:
       offliner:
         required: true
         type: string
-      offliner_definition:
+      offliner_definition_b64:
         required: true
         type: string
     secrets:
@@ -34,12 +34,13 @@ jobs:
           offliner='${{ inputs.offliner }}'
           ci_secret='${{ secrets.zimfarm_ci_secret }}'
           zimfarm_url='${{ matrix.zimfarm_url }}'
+          offliner_definition="$(base64 --decode <<< "${{ inputs.offliner_definition_b64 }}")"
 
           # Construct the payload with proper shape
           payload=$(jq -n \
             --arg version "$version" \
             --arg ci_secret "$ci_secret" \
-            --argjson spec '${{ inputs.offliner_definition }}' \
+            --arg spec "$offliner_definition" \
             '{version: $version, ci_secret: $ci_secret, spec: $spec}')
 
           echo "🚀 Updating $zimfarm_url for $offliner with version $version..."
