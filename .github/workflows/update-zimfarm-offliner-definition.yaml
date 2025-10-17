@@ -31,6 +31,7 @@ jobs:
           set -euo pipefail
 
           version='${{ inputs.version }}'
+          version="${version#v}"
           offliner='${{ inputs.offliner }}'
           ci_secret='${{ secrets.zimfarm_ci_secret }}'
           zimfarm_url='${{ matrix.zimfarm_url }}'
