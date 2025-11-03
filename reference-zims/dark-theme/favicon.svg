@@ -1,0 +1,16 @@
+<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    rect {
+      fill: white;
+      stroke: black;
+      stroke-width: 5;
+    }
+    @media (prefers-color-scheme: dark) {
+      rect {
+        fill: black;
+        stroke: white;
+      }
+    }
+  </style>
+  <rect width="50" height="50" rx="5"/>
+</svg>
