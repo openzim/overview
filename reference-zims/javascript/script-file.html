@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>External Script File - JS Testing Reference ZIM</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style type="text/css">
+body {
+   font-family: system-ui, -apple-system, sans-serif;
+   max-width: 800px;
+   margin: 2rem auto;
+   padding: 0 1rem;
+   line-height: 1.6;
+}
+h1 {
+   color: #2c3e50;
+}
+.status {
+   padding: 1rem;
+   margin: 1rem 0;
+   border-radius: 4px;
+   font-weight: bold;
+}
+.no-js {
+   background-color: #e74c3c;
+   color: white;
+}
+.js-success {
+   background-color: #27ae60;
+   color: white;
+}
+a {
+   color: #3498db;
+}
+</style>
+</head>
+<body>
+   <h1>External Script File Test</h1>
+   <p>This page loads JavaScript from an external script file (<code>script.js</code>).</p>
+
+   <div id="status" class="status no-js">
+      ✗ JavaScript did not run
+   </div>
+
+   <p id="details">The script file was not executed or failed to load.</p>
+
+   <hr>
+   <p><a href="index.html">← Back to main page</a></p>
+
+   <script src="script.js"></script>
+</body>
+</html>

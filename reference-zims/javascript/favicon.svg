@@ -1,0 +1,15 @@
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    rect {
+      fill: #f7df1e;
+    }
+    text {
+      fill: #000;
+      font-family: sans-serif;
+      font-weight: bold;
+      font-size: 24px;
+    }
+  </style>
+  <rect width="48" height="48" rx="5"/>
+  <text x="24" y="34" text-anchor="middle">JS</text>
+</svg>
