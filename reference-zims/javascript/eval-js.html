@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript with eval() - JS Testing Reference ZIM</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style type="text/css">
+body {
+   font-family: system-ui, -apple-system, sans-serif;
+   max-width: 800px;
+   margin: 2rem auto;
+   padding: 0 1rem;
+   line-height: 1.6;
+}
+h1 {
+   color: #2c3e50;
+}
+.status {
+   padding: 1rem;
+   margin: 1rem 0;
+   border-radius: 4px;
+   font-weight: bold;
+}
+.no-js {
+   background-color: #e74c3c;
+   color: white;
+}
+.js-success {
+   background-color: #27ae60;
+   color: white;
+}
+.warning {
+   background-color: #f39c12;
+   color: white;
+   padding: 0.75rem;
+   margin: 1rem 0;
+   border-radius: 4px;
+}
+a {
+   color: #3498db;
+}
+code {
+   background-color: #ecf0f1;
+   padding: 0.2rem 0.4rem;
+   border-radius: 3px;
+}
+</style>
+</head>
+<body>
+   <h1>JavaScript with eval() Test</h1>
+   <p>This page uses the <code>eval()</code> command in an external script file to execute JavaScript code.</p>
+
+   <div class="warning">
+      ⚠ Note: This tests the <code>eval()</code> function which may be blocked by Content Security Policy (CSP) in some readers.
+   </div>
+
+   <div id="status" class="status no-js">
+      ✗ JavaScript did not run
+   </div>
+
+   <p id="details">The eval() script was not executed or failed.</p>
+
+   <hr>
+   <p><a href="index.html">← Back to main page</a></p>
+
+   <script src="eval.js"></script>
+</body>
+</html>

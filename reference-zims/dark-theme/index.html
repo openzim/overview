@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light/Dark mode tester</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style type="text/css">
+:root {
+   --color: #333333;
+   --background-color: #cccccc;
+}
+
+#no-theme { display: block; }
+#light-theme, #dark-theme { display: none; }
+
+@media (prefers-color-scheme: light) {
+   :root {
+      --color: black;
+      --background-color: white;
+  }
+  #light-theme { display: block; }
+  #no-theme, #dark-theme { display: none; }
+  * { color-scheme: light; }
+}
+
+@media (prefers-color-scheme: dark) {
+   :root {
+      --color: white;
+      --background-color: black;
+   }
+   #dark-theme { display: block; }
+   #no-theme, #light-theme { display: none; }
+   * { color-scheme: dark; }
+}
+
+body {
+   background-color: var(--background-color);
+   color: var(--color);
+}
+
+</style>
+</head>
+<body>
+   <h1>Light/Dark mode testing ZIM</h1>
+   <div id="no-theme">
+      <p><code>prefers-color-scheme</code> value is not set.</p>
+   </div>
+   <div id="light-theme">
+      <p><code>prefers-color-scheme</code> value is set to <strong><code>light</code></strong>.</p>
+   </div>
+   <div id="dark-theme">
+      <p><code>prefers-color-scheme</code> value is set to <strong><code>dark</code></strong>.</p>
+   </div>
+   <hr />
+   <textarea placeholder="Sample system widget"></textarea>
+</body>
+</html>
+
