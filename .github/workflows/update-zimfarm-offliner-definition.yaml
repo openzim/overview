@@ -26,6 +26,41 @@ jobs:
       fail-fast: false # Let all jobs run even if one fails
 
     steps:
+      - name: Validate JSON files
+        run |
+          set -euo pipefail
+
+          invalid_keys=()
+
+          is_valid_identifier() {
+            local identifier="$1"
+            if [[ ! $identifier =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+              return 1
+            fi
+
+            return 0
+          }
+
+          offliner_definition="$(base64 --decode <<< "${{ inputs.offliner_definition_b64 }}")"
+          # Extract keys from "flags" object
+          mapfile -t keys < <(echo "$offliner_definition" | jq -r '.flags | keys[]' 2>/dev/null)
+          if [[ ${#keys[@]} -eq 0 ]]; then
+            echo "❌ Could not extract keys from 'flags' object. Ensure JSON contains a 'flags' object" >&2
+            exit 1
+          fi
+
+          for key in "${keys[@]}"; do
+            if ! is_valid_identifier "$key"; then
+              invalid_keys+=("$key")
+            fi
+          done
+
+          if [[ ${#invalid_keys[@]} -gt 0 ]]; then
+            echo "❌ The following keys in 'flags' are not valid Python identifiers:" >&2
+            printf '    - %s\n' "${invalid_keys[@]}" >&2
+            exit 1
+          fi
+
       - name: Update offliner ${{ inputs.offliner }} to version ${{ inputs.version }} on ${{ matrix.zimfarm_url }}
         run: |
           set -euo pipefail
