@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Validate JSON files
-        run |
+        run: |
           set -euo pipefail
 
           invalid_keys=()
