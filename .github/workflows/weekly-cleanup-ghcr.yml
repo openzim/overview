@@ -5,6 +5,9 @@ on:
     - cron: '0 4 * * 3'   # weekly, Wednesday 4am UTC
   workflow_dispatch:      # allow manual trigger too
 
+permissions:
+  packages: write
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest
