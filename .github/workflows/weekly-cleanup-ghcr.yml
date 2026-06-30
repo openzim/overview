@@ -1,0 +1,20 @@
+name: Cleanup GHCR untagged images
+
+on:
+  schedule:
+    - cron: '0 4 * * 3'   # weekly, Wednesday 4am UTC
+  workflow_dispatch:      # allow manual trigger too
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete untagged container images
+        uses: snok/container-retention-policy@v3.1.0
+        with:
+          account: 'openzim'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          image-names: 'sotoki'
+          tag-selection: untagged
+          cut-off: 1w
+          dry-run: true
