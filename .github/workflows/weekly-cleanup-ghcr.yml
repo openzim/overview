@@ -17,4 +17,3 @@ jobs:
           image-names: 'sotoki,zimit'
           tag-selection: untagged
           cut-off: 1w
-          dry-run: true
