@@ -16,4 +16,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           image-names: 'sotoki zimit'
           tag-selection: untagged
-          cut-off: 1w
+          cut-off: 0s
