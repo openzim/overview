@@ -14,6 +14,6 @@ jobs:
         with:
           account: 'openzim'
           token: ${{ secrets.GITHUB_TOKEN }}
-          image-names: 'sotoki,zimit'
+          image-names: 'sotoki zimit'
           tag-selection: untagged
           cut-off: 1w
