@@ -14,6 +14,6 @@ jobs:
         with:
           account: 'openzim'
           token: ${{ secrets.GITHUB_TOKEN }}
-          image-names: 'sotoki zimit'
+          image-names: 'cms-api cms-healthcheck cms-mill cms-shuttle cms-ui devdocs freecodecamp gutenberg ifixit kolibri maps mindtouch mwoffliner nautilus nautilus-webui-api nautilus-webui-frontend node-redis openedx phet sotoki surfer ted test-website warc2zim wikihow wp1-frontend wp1-web wp1-workers wp1_selection_tools youtube zim-tools zimfarm-backend zimfarm-background-tasks zimfarm-dnscache zimfarm-healthcheck zimfarm-monitor zimfarm-monitor-child zimfarm-monitor-parent zimfarm-receiver zimfarm-task-worker zimfarm-ui zimfarm-uploader zimfarm-watcher zimfarm-worker-manager zimit zimit-frontend-api zimit-frontend-ui zimwright'
           tag-selection: untagged
           cut-off: 0s
