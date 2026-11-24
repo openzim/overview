@@ -1,0 +1,247 @@
+name: Reusable workflow to build and publish a Docker image to ghcr.io
+
+# Builds each requested platform on its native runner (no QEMU emulation for
+# linux/amd64 and linux/arm64) and merges them into a single multi-arch
+# manifest, following Docker's documented pattern for distributing a
+# multi-platform build across several runners:
+# https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: target image path on ghcr.io (ex. 'openzim/zimit')
+        required: true
+        type: string
+      context:
+        description: folder to use as context for the build (ex. '.' or 'dnscache')
+        required: false
+        type: string
+        default: .
+      dockerfile:
+        description: Dockerfile path (relative to context) if not 'Dockerfile'
+        required: false
+        type: string
+        default: Dockerfile
+      build-args:
+        description: optional key/value pairs to pass as build arguments, one per line. '{tag}' is replaced with the found tag (if any)
+        required: false
+        type: string
+        default: ''
+      platforms:
+        description: space or newline separated list of platforms to build for (ex. 'linux/amd64 linux/arm64')
+        required: false
+        type: string
+        default: linux/amd64
+      on-main:
+        description: tag to use on default branch commits (ex. 'latest' or 'dev'). Leave out if not wanted
+        required: false
+        type: string
+        default: ''
+      tag-pattern:
+        description: pattern to trigger image tagging on release tags (ex. '/^v([0-9.]+)$/')
+        required: false
+        type: string
+        default: ''
+      latest-on-tag:
+        description: should the matched tag (or manual-tag) also be tagged as 'latest'?
+        required: false
+        type: boolean
+        default: false
+      manual-tag:
+        description: tag to use, overrides on-main and tag-pattern
+        required: false
+        type: string
+        default: ''
+    secrets:
+      ghcr_username:
+        required: true
+      ghcr_token:
+        required: true
+
+jobs:
+  compute-tag:
+    name: Compute tag to publish
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.find.outputs.tag }}
+      latest: ${{ steps.find.outputs.latest }}
+    steps:
+      - name: Find tag to publish
+        id: find
+        env:
+          MANUAL_TAG: ${{ inputs.manual-tag }}
+          TAG_PATTERN: ${{ inputs.tag-pattern }}
+          ON_MAIN: ${{ inputs.on-main }}
+          LATEST_ON_TAG: ${{ inputs.latest-on-tag }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          tag=""
+          latest="false"
+
+          if [ -n "${MANUAL_TAG}" ]; then
+            tag="${MANUAL_TAG}"
+            latest="${LATEST_ON_TAG}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* && -n "${TAG_PATTERN}" ]]; then
+            ref="${GITHUB_REF#refs/tags/}"
+            # convert from perl-style /pattern/ to a bare bash regex
+            pattern="${TAG_PATTERN#/}"
+            pattern="${pattern%/}"
+            if [[ "${ref}" =~ ${pattern} ]]; then
+              if [ -n "${BASH_REMATCH[1]:-}" ]; then
+                tag="${BASH_REMATCH[1]}"
+              else
+                tag="${ref}"
+              fi
+              latest="${LATEST_ON_TAG}"
+            fi
+          elif [[ "${GITHUB_REF}" == "refs/heads/${DEFAULT_BRANCH}" && -n "${ON_MAIN}" ]]; then
+            tag="${ON_MAIN}"
+          fi
+
+          # never push :latest twice when the computed tag already is "latest"
+          if [ "${tag}" = "latest" ]; then
+            latest="false"
+          fi
+
+          if [ -z "${tag}" ]; then
+            echo "No matching tag/branch/pattern, nothing will be published"
+          fi
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "latest=${latest}" >> "${GITHUB_OUTPUT}"
+
+  platforms:
+    name: Compute build matrix
+    needs: compute-tag
+    if: needs.compute-tag.outputs.tag != ''
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - name: Map platforms to native runners
+        id: set
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+
+          matrix="[]"
+          for platform in ${PLATFORMS}; do
+            case "${platform}" in
+              linux/amd64) runner="ubuntu-24.04" ;;
+              linux/arm64) runner="ubuntu-24.04-arm" ;;
+              # no native GitHub-hosted runner for this platform: fall back
+              # to QEMU emulation on an amd64 runner
+              *) runner="ubuntu-24.04" ;;
+            esac
+            matrix=$(echo "${matrix}" | jq --arg p "${platform}" --arg r "${runner}" '. + [{"platform": $p, "runner": $r}]')
+          done
+
+          echo "matrix=$(echo "${matrix}" | jq -c .)" >> "${GITHUB_OUTPUT}"
+
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: [compute-tag, platforms]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.platforms.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        if: ${{ !contains(fromJson('["linux/amd64", "linux/arm64"]'), matrix.platform) }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.ghcr_username }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Resolve build args
+        id: args
+        env:
+          BUILD_ARGS: ${{ inputs.build-args }}
+          TAG: ${{ needs.compute-tag.outputs.tag }}
+        run: |
+          echo "args<<EOF" >> "${GITHUB_OUTPUT}"
+          echo "${BUILD_ARGS//\{tag\}/${TAG}}" >> "${GITHUB_OUTPUT}"
+          echo "EOF" >> "${GITHUB_OUTPUT}"
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.context }}/${{ inputs.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          build-args: ${{ steps.args.outputs.args }}
+          outputs: type=image,name=ghcr.io/${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ strategy.job-index }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge manifest and push
+    needs: [compute-tag, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.ghcr_username }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        env:
+          IMAGE: ghcr.io/${{ inputs.image-name }}
+          TAG: ${{ needs.compute-tag.outputs.tag }}
+          LATEST: ${{ needs.compute-tag.outputs.latest }}
+        run: |
+          set -euo pipefail
+
+          tag_args=(-t "${IMAGE}:${TAG}")
+          if [ "${LATEST}" = "true" ]; then
+            tag_args+=(-t "${IMAGE}:latest")
+          fi
+
+          docker buildx imagetools create "${tag_args[@]}" \
+            $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Inspect pushed image
+        env:
+          IMAGE: ghcr.io/${{ inputs.image-name }}
+          TAG: ${{ needs.compute-tag.outputs.tag }}
+        run: docker buildx imagetools inspect "${IMAGE}:${TAG}"
